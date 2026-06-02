@@ -1,5 +1,7 @@
 # 🔍 CareerLens AI — Resume Analyzer & Career Recommendation System
 
+https://nehaksharma11.github.io/careerlens-ai/
+
 <div align="center">
 
 ![CareerLens AI](https://img.shields.io/badge/CareerLens-AI-0EA5E9?style=for-the-badge&logo=artificial-intelligence)
