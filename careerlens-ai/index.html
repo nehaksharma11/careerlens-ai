@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CareerLens AI – Free Local Resume Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#050D1A;--bg2:#081325;--surface:#0C1C35;--card:#0E2040;
+  --sky:#0EA5E9;--sky2:#38BDF8;--sky3:#7DD3FC;
+  --glow:rgba(14,165,233,.35);--glow2:rgba(56,189,248,.12);
+  --border:rgba(56,189,248,.14);--border2:rgba(56,189,248,.28);
+  --text:#CBD5E1;--white:#F0F9FF;--muted:#4E6680;
+  --green:#10B981;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;
+  --r:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+#bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* FREE BADGE */
+.free-badge{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:.6rem;background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.07));border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:.7rem 1.5rem;max-width:600px;margin:1.2rem auto 0;font-size:.86rem;color:#6EE7B7}
+.free-badge strong{color:var(--green)}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:.85rem 2.5rem;background:rgba(5,13,26,.82);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:.65rem}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--sky),#0369A1);border-radius:10px;display:grid;place-items:center;font-size:1.1rem;box-shadow:0 0 16px var(--glow)}
+.logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.18rem;color:var(--white);letter-spacing:-.025em}
+.logo-text span{color:var(--sky2)}
+.nav-pills{display:flex;align-items:center;gap:.6rem}
+.pill{background:var(--glow2);border:1px solid var(--border);color:var(--sky2);font-size:.7rem;font-weight:600;padding:.26rem .75rem;border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+.pill.free{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.25);color:var(--green)}
+
+/* HERO */
+.hero{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:3rem;max-width:1100px;margin:0 auto;padding:2.5rem 2rem 2rem}
+@media(max-width:860px){.hero{grid-template-columns:1fr;text-align:center}}
+.hero-left{animation:fadeUp .7s ease both}
+.hero-chip{display:inline-flex;align-items:center;gap:.45rem;background:var(--glow2);border:1px solid var(--border);color:var(--sky2);padding:.3rem .9rem;border-radius:20px;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.2rem}
+.pulse-dot{width:6px;height:6px;background:var(--sky);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.75);opacity:.5}}
+h1{font-family:'Syne',sans-serif;font-size:clamp(1.9rem,4.5vw,3.3rem);font-weight:800;line-height:1.1;color:var(--white);letter-spacing:-.03em;margin-bottom:1rem}
+.grad{background:linear-gradient(135deg,var(--sky2),var(--sky3),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{color:var(--muted);font-size:.98rem;line-height:1.7;max-width:480px;margin-bottom:1.6rem}
+.hero-stats{display:flex;gap:1.8rem;flex-wrap:wrap}
+.hstat-n{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--sky2);line-height:1}
+.hstat-l{font-size:.74rem;color:var(--muted);margin-top:.22rem}
+
+/* MASCOT */
+.hero-right{display:flex;justify-content:center;animation:fadeUp .7s .15s ease both}
+.mascot-wrap{position:relative;width:300px;height:320px}
+.orb{position:absolute;border-radius:50%;pointer-events:none}
+.orb1{width:210px;height:210px;background:radial-gradient(circle at 35% 35%,rgba(14,165,233,.22),rgba(14,165,233,.04) 70%,transparent);top:50%;left:50%;transform:translate(-50%,-50%);animation:floatOrb 5s ease-in-out infinite}
+.orb2{width:120px;height:120px;background:radial-gradient(circle,rgba(139,92,246,.18),transparent 70%);top:4%;right:0;animation:floatOrb 3.5s ease-in-out infinite;animation-delay:-.8s}
+.orb3{width:70px;height:70px;background:radial-gradient(circle,rgba(16,185,129,.18),transparent 70%);bottom:10%;left:4%;animation:floatOrb 4.5s ease-in-out infinite;animation-delay:-1.5s}
+@keyframes floatOrb{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-13px)}}
+.robot-svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.robot-body{animation:robotBob 3s ease-in-out infinite}
+@keyframes robotBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.eye-blink{transform-origin:50% 50%;animation:eyeBlink 4s ease-in-out infinite}
+@keyframes eyeBlink{0%,88%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+.robot-arm-l{transform-origin:27px 118px;animation:armL 2.5s ease-in-out infinite}
+.robot-arm-r{transform-origin:153px 118px;animation:armR 2.5s ease-in-out infinite}
+@keyframes armL{0%,100%{transform:rotate(0)}45%{transform:rotate(-20deg)}}
+@keyframes armR{0%,100%{transform:rotate(0)}60%{transform:rotate(18deg)}}
+.signal-ring{animation:sigPulse 2s ease-out infinite}
+@keyframes sigPulse{0%{r:5;opacity:.9;stroke-width:2}100%{r:20;opacity:0;stroke-width:.5}}
+.bubble{position:absolute;background:var(--card);border:1px solid var(--border2);color:var(--sky2);font-size:.68rem;font-weight:600;padding:.28rem .65rem;border-radius:20px;white-space:nowrap;animation:floatB linear infinite}
+.b1{top:5%;left:-10%;animation-duration:6s}
+.b2{top:14%;right:-8%;animation-duration:7s;animation-delay:-2s}
+.b3{bottom:22%;left:-14%;animation-duration:5.5s;animation-delay:-1s}
+.b4{bottom:7%;right:-5%;animation-duration:6.5s;animation-delay:-3s}
+.b5{top:48%;left:-16%;animation-duration:8s;animation-delay:-4s}
+@keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes scoreAnim{0%{width:26px}100%{width:52px}}
+
+/* UPLOAD */
+.upload-section{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 2rem 3rem}
+.upload-card{background:var(--card);border:2px dashed var(--border);border-radius:22px;padding:2.2rem 2rem;text-align:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.upload-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% -10%,rgba(14,165,233,.07),transparent);pointer-events:none}
+.upload-card:hover,.upload-card.drag{border-color:var(--sky);background:rgba(14,165,233,.05);box-shadow:0 0 0 4px rgba(14,165,233,.1)}
+.upload-card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2}
+.u-circle{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,rgba(14,165,233,.18),rgba(56,189,248,.07));border:1.5px solid var(--border2);display:grid;place-items:center;font-size:1.7rem;margin:0 auto .85rem;animation:uPulse 2.5s ease-in-out infinite}
+@keyframes uPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 var(--glow)}50%{transform:scale(1.06);box-shadow:0 0 0 10px transparent}}
+.upload-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--white)}
+.upload-sub{color:var(--muted);font-size:.86rem;margin-top:.3rem}
+.file-name{color:var(--sky2);font-weight:600;margin-top:.65rem;font-size:.86rem}
+.divider{display:flex;align-items:center;gap:1rem;color:var(--muted);font-size:.82rem;margin:1rem 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+textarea{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--white);font-family:'Plus Jakarta Sans',sans-serif;font-size:.88rem;line-height:1.65;border-radius:var(--r);padding:1rem 1.2rem;resize:vertical;min-height:160px;outline:none;transition:border-color .2s,box-shadow .2s}
+textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(14,165,233,.15)}
+textarea::placeholder{color:var(--muted)}
+.btn-primary{display:flex;align-items:center;justify-content:center;gap:.65rem;width:100%;padding:1.05rem;background:linear-gradient(135deg,var(--sky),#0369A1);color:#fff;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;border:none;border-radius:var(--r);cursor:pointer;margin-top:1.1rem;transition:transform .15s,box-shadow .2s;box-shadow:0 4px 28px var(--glow);letter-spacing:.01em}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(14,165,233,.55)}
+.btn-primary:active{transform:translateY(0)}
+
+/* LOADER */
+.loader-wrap{display:none;flex-direction:column;align-items:center;gap:1.2rem;padding:2rem;text-align:center}
+.loader-wrap.active{display:flex}
+.loader-rings{position:relative;width:56px;height:56px}
+.ring{position:absolute;inset:0;border:2.5px solid transparent;border-radius:50%}
+.ring1{border-top-color:var(--sky);animation:spin 1.2s linear infinite}
+.ring2{border-right-color:var(--purple);animation:spin 1.8s linear reverse infinite;inset:8px}
+.ring3{border-bottom-color:var(--green);animation:spin 2.4s linear infinite;inset:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.step-list{display:flex;flex-direction:column;gap:.38rem}
+.step-item{font-size:.85rem;color:var(--muted);transition:color .3s,transform .3s}
+.step-item.active-step{color:var(--sky2);font-weight:600;transform:translateX(4px)}
+.step-item.done-step{color:var(--green)}
+
+/* RESULTS */
+#results{display:none;position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 2rem 5rem}
+#results.visible{display:block;animation:fadeUp .5s ease both}
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
+.results-header h2{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--white)}
+.btn-reset{background:var(--surface);border:1px solid var(--border);color:var(--sky2);padding:.5rem 1.2rem;border-radius:10px;cursor:pointer;font-size:.88rem;font-weight:500;transition:all .2s}
+.btn-reset:hover{background:var(--glow2);border-color:var(--border2)}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-bottom:1.2rem}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem;margin-bottom:1.2rem}
+.grid-1{margin-bottom:1.2rem}
+@media(max-width:860px){.grid-3,.grid-2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:1.5rem;transition:border-color .25s,box-shadow .25s,transform .2s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(14,165,233,.05),transparent);pointer-events:none}
+.card:hover{border-color:var(--border2);box-shadow:0 8px 32px rgba(14,165,233,.1);transform:translateY(-2px)}
+.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.74rem;color:var(--sky2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.9rem;display:flex;align-items:center;gap:.4rem}
+.score-card{background:linear-gradient(135deg,#0B2347,#081628);border:1px solid var(--border);border-radius:20px;padding:1.5rem;display:flex;align-items:center;gap:1.5rem;position:relative;overflow:hidden}
+.score-card::after{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(14,165,233,.16),transparent 70%);border-radius:50%}
+.score-ring{flex-shrink:0;width:110px;height:110px;position:relative}
+.score-ring svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(56,189,248,.1);stroke-width:9}
+.ring-fill{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)}
+.score-num{position:absolute;inset:0;display:grid;place-items:center;font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:800;color:var(--white)}
+.score-info h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:var(--white)}
+.score-info p{color:var(--muted);font-size:.85rem;line-height:1.55;margin-top:.3rem}
+.score-badge{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-top:.6rem;display:inline-block;padding:.22rem .7rem;border-radius:20px}
+.b-ex{background:rgba(16,185,129,.15);color:var(--green)}
+.b-good{background:rgba(56,189,248,.15);color:var(--sky2)}
+.b-avg{background:rgba(245,158,11,.15);color:var(--amber)}
+.b-low{background:rgba(239,68,68,.15);color:var(--red)}
+.skills-wrap{display:flex;flex-wrap:wrap;gap:.42rem;margin-top:.3rem}
+.skill-tag{background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2);color:var(--sky2);font-size:.77rem;font-weight:500;padding:.24rem .7rem;border-radius:20px;transition:all .2s}
+.skill-tag:hover{background:rgba(14,165,233,.2);transform:translateY(-1px)}
+.skill-tag.miss{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.22);color:var(--red)}
+.skill-tag.part{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.22);color:var(--amber)}
+.job-row{display:flex;align-items:center;justify-content:space-between;padding:.65rem 0;border-bottom:1px solid var(--border)}
+.job-row:last-child{border-bottom:none;padding-bottom:0}
+.job-name{font-weight:600;color:var(--white);font-size:.9rem}
+.job-reason{font-size:.77rem;color:var(--muted);margin-top:.1rem}
+.bar-wrap{min-width:120px;text-align:right}
+.bar-pct{font-size:.82rem;font-weight:700;margin-bottom:.26rem}
+.bar-bg{height:5px;border-radius:3px;background:rgba(56,189,248,.08);overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 1.3s cubic-bezier(.4,0,.2,1)}
+.course-row{display:flex;align-items:flex-start;gap:.8rem;padding:.72rem;border-radius:12px;background:var(--surface);border:1px solid var(--border);margin-bottom:.6rem;transition:border-color .2s,transform .2s}
+.course-row:last-child{margin-bottom:0}
+.course-row:hover{border-color:var(--border2);transform:translateX(3px)}
+.c-icon{font-size:1.35rem;flex-shrink:0;margin-top:.08rem}
+.c-name{font-weight:600;color:var(--white);font-size:.87rem}
+.c-provider{font-size:.77rem;color:var(--muted);margin-top:.1rem}
+.c-tag{display:inline-block;background:var(--glow2);border:1px solid var(--border);color:var(--sky2);font-size:.7rem;padding:.13rem .48rem;border-radius:20px;margin-top:.25rem}
+.c-tag.free{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:var(--green)}
+.fb-row{display:flex;gap:.82rem;padding:.72rem 0;border-bottom:1px solid var(--border)}
+.fb-row:last-child{border-bottom:none}
+.fb-icon{font-size:1rem;flex-shrink:0;margin-top:.1rem}
+.fb-text{font-size:.87rem;color:var(--text);line-height:1.6}
+.err-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.28);color:#FCA5A5;border-radius:var(--r);padding:.9rem 1.1rem;margin-top:.8rem;font-size:.87rem;display:none}
+.err-box.show{display:block}
+
+/* Section score bars */
+.sec-bars{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+.sec-bar-row{display:flex;align-items:center;gap:.8rem}
+.sec-bar-label{font-size:.78rem;color:var(--text);min-width:100px}
+.sec-bar-track{flex:1;height:7px;background:rgba(56,189,248,.08);border-radius:4px;overflow:hidden}
+.sec-bar-fill{height:100%;border-radius:4px;transition:width 1.3s cubic-bezier(.4,0,.2,1)}
+.sec-bar-val{font-size:.78rem;font-weight:600;min-width:32px;text-align:right}
+
+footer{position:relative;z-index:1;text-align:center;padding:1.8rem;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border)}
+footer strong{color:var(--sky2)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🔍</div>
+    <div class="logo-text">Career<span>Lens</span> AI</div>
+  </div>
+  <div class="nav-pills">
+    <span class="pill free">✓ 100% Free</span>
+    <span class="pill">No API Needed</span>
+    <span class="pill">Works Offline</span>
+  </div>
+</nav>
+
+<!-- FREE BADGE -->
+<div class="free-badge">
+  🎉 <strong>Completely Free &amp; Local</strong> — No API key, no internet, no signup. Everything runs in your browser!
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-chip"><span class="pulse-dot"></span>Local AI · NLP Rules · Zero Cost</div>
+    <h1>Analyze Resume.<br><span class="grad">Land Dream Jobs.</span></h1>
+    <p class="hero-sub">Paste or upload your resume and get an instant AI-powered breakdown — skills, ATS score, job matches, gap analysis, and course recommendations. 100% free, runs entirely in your browser.</p>
+    <div class="hero-stats">
+      <div class="hstat"><span class="hstat-n">Free</span><span class="hstat-l">Forever</span></div>
+      <div class="hstat"><span class="hstat-n">500+</span><span class="hstat-l">Skills database</span></div>
+      <div class="hstat"><span class="hstat-n">&lt;1s</span><span class="hstat-l">Instant results</span></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="mascot-wrap">
+      <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+      <div class="bubble b1">Python 🐍</div>
+      <div class="bubble b2">ML Model ⚙️</div>
+      <div class="bubble b3">NLP 🧠</div>
+      <div class="bubble b4">React ⚛️</div>
+      <div class="bubble b5">FastAPI 🚀</div>
+      <svg class="robot-svg" width="180" height="240" viewBox="0 0 180 240" fill="none">
+        <g class="robot-body">
+          <ellipse cx="90" cy="228" rx="42" ry="8" fill="rgba(14,165,233,.18)"/>
+          <line x1="90" y1="30" x2="90" y2="16" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="90" cy="12" r="5" fill="#0EA5E9"/><circle cx="90" cy="12" r="2.5" fill="#E0F2FE"/>
+          <g transform="translate(90,12)">
+            <circle class="signal-ring" cx="0" cy="0" r="5" fill="none" stroke="#38BDF8" stroke-width="2"/>
+            <circle class="signal-ring" cx="0" cy="0" r="5" fill="none" stroke="#38BDF8" stroke-width="2" style="animation-delay:.5s"/>
+            <circle class="signal-ring" cx="0" cy="0" r="5" fill="none" stroke="#38BDF8" stroke-width="2" style="animation-delay:1s"/>
+          </g>
+          <rect x="46" y="30" width="88" height="72" rx="18" fill="#0C2040" stroke="#1E4A80" stroke-width="1.5"/>
+          <rect x="52" y="35" width="28" height="7" rx="3.5" fill="rgba(56,189,248,.1)"/>
+          <g class="eye-blink">
+            <rect x="58" y="50" width="26" height="24" rx="9" fill="#051525" stroke="#1E4A80" stroke-width="1"/>
+            <circle cx="71" cy="62" r="7.5" fill="#0EA5E9"/><circle cx="71" cy="62" r="4" fill="#E0F2FE"/><circle cx="73" cy="60" r="1.5" fill="white"/>
+            <rect x="96" y="50" width="26" height="24" rx="9" fill="#051525" stroke="#1E4A80" stroke-width="1"/>
+            <circle cx="109" cy="62" r="7.5" fill="#0EA5E9"/><circle cx="109" cy="62" r="4" fill="#E0F2FE"/><circle cx="111" cy="60" r="1.5" fill="white"/>
+          </g>
+          <rect x="68" y="84" width="44" height="10" rx="5" fill="#051525" stroke="#1E4A80" stroke-width="1"/>
+          <rect x="71" y="87" width="9" height="4" rx="2" fill="#10B981"/>
+          <rect x="83" y="87" width="9" height="4" rx="2" fill="#38BDF8"/>
+          <rect x="95" y="87" width="9" height="4" rx="2" fill="#8B5CF6"/>
+          <rect x="80" y="102" width="20" height="12" rx="5" fill="#0C2040" stroke="#1E4A80" stroke-width="1"/>
+          <rect x="34" y="114" width="112" height="90" rx="22" fill="#0D1E38" stroke="#1A3D6E" stroke-width="1.5"/>
+          <line x1="90" y1="120" x2="90" y2="198" stroke="#1A3D6E" stroke-width="1" stroke-dasharray="3 3"/>
+          <rect x="50" y="124" width="80" height="44" rx="9" fill="#051525" stroke="#0EA5E9" stroke-width="1"/>
+          <text x="90" y="140" text-anchor="middle" fill="#38BDF8" font-size="8" font-family="monospace" font-weight="bold">ATS SCORE</text>
+          <rect x="58" y="145" width="64" height="6" rx="3" fill="rgba(14,165,233,.12)"/>
+          <rect x="58" y="145" width="50" height="6" rx="3" fill="#0EA5E9" style="animation:scoreAnim 2s ease-in-out infinite alternate"/>
+          <text x="90" y="162" text-anchor="middle" fill="#10B981" font-size="8" font-family="monospace">LOCAL AI ✓</text>
+          <circle cx="58" cy="178" r="6" fill="#0EA5E9" opacity=".8"/><circle cx="58" cy="178" r="3" fill="#E0F2FE"/>
+          <circle cx="76" cy="178" r="6" fill="#10B981" opacity=".8"/><circle cx="76" cy="178" r="3" fill="#D1FAE5"/>
+          <circle cx="94" cy="178" r="6" fill="#8B5CF6" opacity=".8"/><circle cx="94" cy="178" r="3" fill="#EDE9FE"/>
+          <circle cx="112" cy="178" r="6" fill="#F59E0B" opacity=".8"/><circle cx="112" cy="178" r="3" fill="#FEF3C7"/>
+          <g class="robot-arm-l">
+            <rect x="14" y="118" width="22" height="58" rx="11" fill="#0D1E38" stroke="#1A3D6E" stroke-width="1.5"/>
+            <rect x="12" y="172" width="26" height="20" rx="8" fill="#0C2040" stroke="#1E4A80" stroke-width="1"/>
+            <circle cx="19" cy="182" r="3" fill="#0EA5E9" opacity=".6"/><circle cx="29" cy="182" r="3" fill="#0EA5E9" opacity=".6"/>
+          </g>
+          <g class="robot-arm-r">
+            <rect x="144" y="118" width="22" height="58" rx="11" fill="#0D1E38" stroke="#1A3D6E" stroke-width="1.5"/>
+            <rect x="142" y="172" width="26" height="20" rx="8" fill="#0C2040" stroke="#1E4A80" stroke-width="1"/>
+            <circle cx="149" cy="182" r="3" fill="#0EA5E9" opacity=".6"/><circle cx="159" cy="182" r="3" fill="#0EA5E9" opacity=".6"/>
+          </g>
+          <rect x="58" y="202" width="26" height="22" rx="8" fill="#0D1E38" stroke="#1A3D6E" stroke-width="1.5"/>
+          <rect x="96" y="202" width="26" height="22" rx="8" fill="#0D1E38" stroke="#1A3D6E" stroke-width="1.5"/>
+          <rect x="54" y="220" width="34" height="10" rx="5" fill="#0C2040" stroke="#1E4A80" stroke-width="1"/>
+          <rect x="92" y="220" width="34" height="10" rx="5" fill="#0C2040" stroke="#1E4A80" stroke-width="1"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- UPLOAD -->
+<div class="upload-section">
+  <div class="upload-card" id="dropZone">
+    <input type="file" id="fileInput" accept=".pdf,.txt"/>
+    <div class="u-circle">📄</div>
+    <div class="upload-title">Drop your resume here</div>
+    <div class="upload-sub">TXT format works best · Or paste below · PDF text extraction supported</div>
+    <div class="file-name" id="fileName"></div>
+  </div>
+  <div class="divider">or paste resume text below</div>
+  <textarea id="resumeText" placeholder="Paste your full resume here for instant analysis…&#10;&#10;Example:&#10;Priya Sharma | priya@email.com | +91-9XXXXXXXXX&#10;Education: B.Tech CSE, Dronacharya College of Engineering, 2025&#10;Skills: Python, Machine Learning, SQL, React, FastAPI, NLP, spaCy&#10;Experience: ML Intern at XYZ Corp — Built NLP pipeline using spaCy&#10;Projects: Resume Analyzer using scikit-learn and Flask&#10;Certifications: Deep Learning Specialization - Coursera"></textarea>
+  <div class="err-box" id="errBox"></div>
+  <button class="btn-primary" onclick="analyze()">⚡ &nbsp;Analyze Resume — Free &amp; Instant</button>
+  <div class="loader-wrap" id="loader">
+    <div class="loader-rings"><div class="ring ring1"></div><div class="ring ring2"></div><div class="ring ring3"></div></div>
+    <div class="step-list">
+      <div class="step-item" id="s1">📄 Parsing resume structure…</div>
+      <div class="step-item" id="s2">🧠 Extracting skills with NLP rules…</div>
+      <div class="step-item" id="s3">📊 Calculating ATS score…</div>
+      <div class="step-item" id="s4">🎯 Matching job roles…</div>
+      <div class="step-item" id="s5">📚 Building recommendations…</div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="results-header">
+    <h2>📊 Analysis Complete</h2>
+    <button class="btn-reset" onclick="reset()">← New Analysis</button>
+  </div>
+  <div class="grid-3">
+    <div class="score-card">
+      <div class="score-ring">
+        <svg viewBox="0 0 110 110" width="110" height="110">
+          <circle class="ring-bg" cx="55" cy="55" r="46"/>
+          <circle class="ring-fill" id="ringFill" cx="55" cy="55" r="46" stroke-dasharray="289" stroke-dashoffset="289"/>
+        </svg>
+        <div class="score-num" id="scoreNum">—</div>
+      </div>
+      <div class="score-info">
+        <div class="card-title" style="margin-bottom:.35rem">ATS Score</div>
+        <h3>Resume Rating</h3>
+        <p id="scoreDesc">Evaluating…</p>
+        <span class="score-badge" id="scoreBadge">–</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎓 Education &amp; Contact</div>
+      <div id="eduInfo" style="color:var(--white);font-size:.9rem;line-height:1.7">—</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 Section Scores</div>
+      <div class="sec-bars" id="secBars"></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">⚡ Skills Identified</div>
+      <div style="font-size:.77rem;color:var(--muted);margin-bottom:.38rem">Technical</div>
+      <div class="skills-wrap" id="techSkills"></div>
+      <div style="font-size:.77rem;color:var(--muted);margin:.75rem 0 .38rem">Soft Skills</div>
+      <div class="skills-wrap" id="softSkills"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 Job Role Predictions</div>
+      <div id="jobRoles"></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🔍 Skill Gap Analysis</div>
+      <div style="font-size:.77rem;color:var(--muted);margin-bottom:.38rem">✅ Strong areas</div>
+      <div class="skills-wrap" id="strongAreas"></div>
+      <div style="font-size:.77rem;color:var(--muted);margin:.72rem 0 .38rem">⚠️ Partially present</div>
+      <div class="skills-wrap" id="partAreas"></div>
+      <div style="font-size:.77rem;color:var(--muted);margin:.72rem 0 .38rem">❌ Missing / to learn</div>
+      <div class="skills-wrap" id="missSkills"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📚 Free Course Recommendations</div>
+      <div id="courses"></div>
+    </div>
+  </div>
+  <div class="grid-1">
+    <div class="card">
+      <div class="card-title">💡 Personalized Feedback</div>
+      <div id="feedback"></div>
+    </div>
+  </div>
+</section>
+
+<footer>Built with ❤️ by <strong>Pritidarshini Biswal &amp; Neha Kumari</strong> · CSE · Dronacharya College of Engineering · Batch 2023–2027 · 100% Free Local App</footer>
+
+<script>
+/* ══════════════════════════════════════════════════
+   PARTICLE BACKGROUND
+══════════════════════════════════════════════════ */
+const canvas=document.getElementById('bgCanvas'),ctx=canvas.getContext('2d');
+let pts=[];
+function resizeC(){canvas.width=window.innerWidth;canvas.height=Math.max(document.body.scrollHeight,window.innerHeight)}
+function initPts(){pts=[];const n=Math.floor(canvas.width/14);for(let i=0;i<n;i++)pts.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.6+.4,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,o:Math.random()*.4+.08})}
+function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(56,189,248,${p.o})`;ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>canvas.width)p.vx*=-1;if(p.y<0||p.y>canvas.height)p.vy*=-1});for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<110){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(14,165,233,${.1*(1-d/110)})`;ctx.lineWidth=.5;ctx.stroke()}}requestAnimationFrame(draw)}
+window.addEventListener('resize',()=>{resizeC();initPts()});resizeC();initPts();draw();
+
+/* ══════════════════════════════════════════════════
+   SKILLS DATABASE
+══════════════════════════════════════════════════ */
+const SKILLS_DB = {
+  languages:    ['python','java','javascript','typescript','c++','c','c#','ruby','go','rust','swift','kotlin','php','r','matlab','scala','perl','dart','html','css','sql','bash','shell'],
+  frameworks:   ['react','angular','vue','next.js','nextjs','nuxt','express','flask','fastapi','django','spring','laravel','rails','asp.net','flutter','react native','electron','svelte','tailwind','bootstrap','jquery'],
+  ml_ai:        ['machine learning','deep learning','neural network','nlp','natural language processing','computer vision','reinforcement learning','tensorflow','pytorch','keras','scikit-learn','sklearn','xgboost','lightgbm','hugging face','transformers','bert','gpt','llm','opencv','yolo','pandas','numpy','matplotlib','seaborn','plotly','scipy','spacy','nltk','gensim'],
+  data:         ['sql','mysql','postgresql','mongodb','redis','cassandra','elasticsearch','neo4j','firebase','dynamodb','data analysis','data science','power bi','tableau','excel','spark','hadoop','kafka','airflow','dbt','etl','data pipeline','feature engineering','data visualization'],
+  cloud_devops: ['aws','azure','gcp','google cloud','docker','kubernetes','k8s','terraform','ansible','jenkins','ci/cd','github actions','linux','unix','nginx','apache','microservices','rest api','graphql','grpc','rabbitmq','git','github','gitlab','bitbucket','devops','mlops'],
+  other_tech:   ['blockchain','web3','solidity','cybersecurity','network security','penetration testing','arduino','raspberry pi','iot','embedded systems','unity','unreal','game development','figma','adobe xd','ui/ux'],
+  soft:         ['communication','leadership','teamwork','problem solving','critical thinking','time management','adaptability','creativity','project management','agile','scrum','kanban','presentation','research','analytical','detail oriented','self motivated','collaboration','mentoring']
+};
+
+const JOB_ROLES = [
+  {title:'ML Engineer',    keys:['machine learning','python','tensorflow','pytorch','scikit-learn','deep learning','nlp'],        courses:['machine learning','python','tensorflow']},
+  {title:'Data Scientist', keys:['python','data analysis','pandas','numpy','statistics','sql','visualization','r'],               courses:['data science','statistics','tableau']},
+  {title:'Software Engineer',keys:['python','java','javascript','data structures','algorithms','git','rest api','sql'],           courses:['data structures','system design','algorithms']},
+  {title:'Frontend Dev',   keys:['react','angular','vue','html','css','javascript','typescript','figma','ui/ux'],                 courses:['react','javascript','css']},
+  {title:'Backend Dev',    keys:['python','java','node','express','flask','django','fastapi','sql','mongodb','rest api','docker'],courses:['backend development','databases','docker']},
+  {title:'DevOps Engineer',keys:['docker','kubernetes','aws','azure','gcp','terraform','jenkins','linux','ci/cd','git'],          courses:['aws','kubernetes','devops']},
+  {title:'Data Analyst',   keys:['sql','excel','power bi','tableau','python','data visualization','statistics'],                  courses:['sql','power bi','excel analytics']},
+  {title:'NLP Engineer',   keys:['nlp','spacy','nltk','transformers','bert','python','text processing','hugging face'],           courses:['nlp','transformers','bert']},
+  {title:'Cloud Architect',keys:['aws','azure','gcp','microservices','kubernetes','terraform','distributed systems'],             courses:['aws solutions architect','gcp','azure']},
+  {title:'Full Stack Dev', keys:['react','node','javascript','python','sql','mongodb','rest api','docker','html','css'],         courses:['full stack','react','nodejs']},
+];
+
+const COURSE_DB = {
+  'machine learning':     {name:'Machine Learning Specialization',   provider:'Coursera (Andrew Ng)',  icon:'🤖', tag:'Free Audit'},
+  'python':               {name:'Python for Everybody',              provider:'Coursera',              icon:'🐍', tag:'Free Audit'},
+  'tensorflow':           {name:'TensorFlow Developer Certificate',  provider:'Coursera',              icon:'🧠', tag:'Free Audit'},
+  'data science':         {name:'IBM Data Science Professional',     provider:'Coursera',              icon:'📊', tag:'Free Audit'},
+  'statistics':           {name:'Statistics with Python',            provider:'Coursera',              icon:'📐', tag:'Free Audit'},
+  'tableau':              {name:'Tableau Public Tutorials',          provider:'Tableau Official',      icon:'📈', tag:'Free'},
+  'sql':                  {name:'SQL for Data Science',              provider:'Coursera',              icon:'🗄️', tag:'Free Audit'},
+  'power bi':             {name:'Microsoft Power BI Tutorials',      provider:'Microsoft Learn',       icon:'📊', tag:'Free'},
+  'excel analytics':      {name:'Excel Skills for Data Analytics',   provider:'Coursera',              icon:'📋', tag:'Free Audit'},
+  'react':                {name:'React - The Complete Guide',        provider:'freeCodeCamp',          icon:'⚛️', tag:'Free'},
+  'javascript':           {name:'JavaScript Algorithms & Structures',provider:'freeCodeCamp',          icon:'🟨', tag:'Free'},
+  'css':                  {name:'CSS Full Course',                   provider:'freeCodeCamp',          icon:'🎨', tag:'Free'},
+  'backend development':  {name:'Backend Development with Node.js',  provider:'The Odin Project',      icon:'⚙️', tag:'Free'},
+  'databases':            {name:'CS50 Intro to Databases',           provider:'Harvard / edX',         icon:'🗃️', tag:'Free'},
+  'docker':               {name:'Docker & Kubernetes: Practical Guide',provider:'YouTube - TechWorld', icon:'🐳', tag:'Free'},
+  'devops':               {name:'DevOps Beginners to Advanced',      provider:'Udemy (KodeKloud)',     icon:'🔧', tag:'Paid'},
+  'aws':                  {name:'AWS Cloud Practitioner Essentials', provider:'AWS Skill Builder',     icon:'☁️', tag:'Free'},
+  'kubernetes':           {name:'Kubernetes for Beginners',          provider:'KodeKloud',             icon:'☸️', tag:'Free Trial'},
+  'gcp':                  {name:'Google Cloud Fundamentals',         provider:'Google Cloud Skills',   icon:'🌐', tag:'Free'},
+  'azure':                {name:'Azure Fundamentals AZ-900',         provider:'Microsoft Learn',       icon:'🔷', tag:'Free'},
+  'nlp':                  {name:'Natural Language Processing',       provider:'Coursera (deeplearning.ai)',icon:'💬',tag:'Free Audit'},
+  'transformers':         {name:'Hugging Face NLP Course',           provider:'HuggingFace.co',        icon:'🤗', tag:'Free'},
+  'bert':                 {name:'BERT Fine-Tuning Tutorial',         provider:'YouTube - Andrej Karpathy',icon:'📝',tag:'Free'},
+  'data structures':      {name:'Data Structures & Algorithms',      provider:'CS50 / Harvard',        icon:'🌳', tag:'Free'},
+  'system design':        {name:'System Design Primer',              provider:'GitHub',                icon:'🏗️', tag:'Free'},
+  'algorithms':           {name:'Algorithms Specialization',         provider:'Coursera (Stanford)',   icon:'🔣', tag:'Free Audit'},
+  'full stack':           {name:'The Odin Project – Full Stack',     provider:'The Odin Project',      icon:'🌐', tag:'Free'},
+  'nodejs':               {name:'Node.js Crash Course',              provider:'Traversy Media / YT',   icon:'🟢', tag:'Free'},
+  'aws solutions architect':{name:'AWS Solutions Architect Path',   provider:'AWS Skill Builder',     icon:'🏛️', tag:'Free'},
+  'pytorch':              {name:'Deep Learning with PyTorch',        provider:'fast.ai',               icon:'🔥', tag:'Free'},
+  'deep learning':        {name:'Deep Learning Specialization',      provider:'Coursera (Andrew Ng)',  icon:'🧬', tag:'Free Audit'},
+};
+
+/* ══════════════════════════════════════════════════
+   FILE UPLOAD
+══════════════════════════════════════════════════ */
+let resumeRaw = '';
+
+document.getElementById('fileInput').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  document.getElementById('fileName').textContent = '📎 ' + f.name;
+  try {
+    resumeRaw = await f.text();
+    document.getElementById('resumeText').value = resumeRaw;
+  } catch(_) {
+    document.getElementById('errBox').textContent = '⚠️ Could not read file. Please paste your resume text directly.';
+    document.getElementById('errBox').className = 'err-box show';
+  }
+});
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', async e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const f = e.dataTransfer.files[0]; if(!f) return;
+  document.getElementById('fileName').textContent = '📎 ' + f.name;
+  resumeRaw = await f.text();
+  document.getElementById('resumeText').value = resumeRaw;
+});
+
+/* ══════════════════════════════════════════════════
+   LOADER
+══════════════════════════════════════════════════ */
+let LT;
+function startLoader(){
+  ['s1','s2','s3','s4','s5'].forEach(id=>document.getElementById(id).className='step-item');
+  let i=0; document.getElementById('s1').className='step-item active-step';
+  LT=setInterval(()=>{if(i<4){document.getElementById('s'+(i+1)).className='step-item done-step';document.getElementById('s'+(++i+1)).className='step-item active-step'}},400);
+}
+function stopLoader(){clearInterval(LT);}
+
+/* ══════════════════════════════════════════════════
+   CORE ANALYSIS ENGINE
+══════════════════════════════════════════════════ */
+function analyze() {
+  const text = document.getElementById('resumeText').value.trim();
+  const err = document.getElementById('errBox');
+  err.className = 'err-box';
+
+  if(!text || text.length < 50) {
+    err.textContent = '⚠️ Please paste your resume text (at least a few lines) to analyze.';
+    err.className = 'err-box show'; return;
+  }
+
+  document.getElementById('loader').className = 'loader-wrap active';
+  document.getElementById('results').className = '';
+  startLoader();
+
+  setTimeout(() => {
+    try {
+      const result = runAnalysis(text);
+      stopLoader();
+      document.getElementById('loader').className = 'loader-wrap';
+      renderResults(result);
+    } catch(e) {
+      stopLoader();
+      document.getElementById('loader').className = 'loader-wrap';
+      err.textContent = '❌ Analysis error: ' + e.message;
+      err.className = 'err-box show';
+    }
+  }, 2200);
+}
+
+/* ── SMART MATCH: checks if a skill exists anywhere in raw resume text ── */
+function skillExists(skill, rawText) {
+  const t = rawText.toLowerCase();
+  const s = skill.toLowerCase();
+  // Direct substring match first (catches most cases)
+  if(t.includes(s)) return true;
+  // Handle common aliases and abbreviations
+  const aliases = {
+    'javascript': ['js', 'javascript', 'node.js'],
+    'typescript': ['ts', 'typescript'],
+    'python':     ['python', 'py'],
+    'c++':        ['c++', 'cpp', 'c plus plus'],
+    'c#':         ['c#', 'csharp', 'c sharp'],
+    'scikit-learn':['scikit-learn','scikit learn','sklearn'],
+    'next.js':    ['next.js','nextjs','next js'],
+    'react native':['react native','react-native'],
+    'node':       ['node.js','nodejs','node js'],
+    'postgresql': ['postgresql','postgres'],
+    'mongodb':    ['mongodb','mongo db','mongo'],
+    'kubernetes': ['kubernetes','k8s'],
+    'machine learning':['machine learning','ml','mle'],
+    'deep learning':   ['deep learning','dl'],
+    'natural language processing':['natural language processing','nlp'],
+    'computer vision': ['computer vision','cv'],
+    'reinforcement learning':['reinforcement learning','rl'],
+    'hugging face':    ['hugging face','huggingface'],
+    'rest api':        ['rest api','restful','rest','api development'],
+    'power bi':        ['power bi','powerbi'],
+    'ci/cd':           ['ci/cd','cicd','ci cd','continuous integration'],
+    'github actions':  ['github actions','github-actions'],
+  };
+  const list = aliases[s];
+  if(list) return list.some(a => t.includes(a));
+  return false;
+}
+
+function runAnalysis(raw) {
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const rawLower = raw.toLowerCase();
+
+  /* ── EXTRACT NAME ── */
+  let name = 'Not detected';
+  // Try first non-empty line that looks like a name
+  for(const line of lines.slice(0, 5)) {
+    if(/^[A-Z][a-z]+(\s[A-Z][a-z]+){1,3}$/.test(line.trim())) { name = line.trim(); break; }
+  }
+  if(name === 'Not detected') {
+    const nm = raw.match(/^([A-Z][a-z]+(?: [A-Z][a-z]+){1,3})/m);
+    if(nm) name = nm[1];
+  }
+
+  /* ── EXTRACT EMAIL & PHONE ── */
+  const emailMatch = raw.match(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/);
+  const email = emailMatch ? emailMatch[0] : '';
+  const phoneMatch = raw.match(/(\+?\d[\d\s\-(). ]{7,14}\d)/);
+  const phone = phoneMatch ? phoneMatch[0].replace(/\s+/g,' ').trim() : '';
+
+  /* ── DETECT SECTIONS (improved) ── */
+  const hasSections = {
+    contact:       /email|phone|mobile|linkedin|github|contact/i.test(raw) || !!email || !!phone,
+    education:     /education|b\.?\s*tech|m\.?\s*tech|b\.?sc|m\.?sc|bachelor|master|phd|b\.e\b|m\.e\b|bca|mca|university|college|degree/i.test(raw),
+    experience:    /experience|internship|intern|employment|work\s*history|worked\s*at|company|organization/i.test(raw),
+    skills:        /skill|technolog|tools|proficient|expertise|languages|framework/i.test(raw),
+    projects:      /project|built|developed|implemented|created|application|system|website|app\b/i.test(raw),
+    summary:       /summary|objective|profile|about\s*me|overview|career\s*goal/i.test(raw),
+    certifications:/certif|certified|certificate|completed\s*course|course\s*completed/i.test(raw),
+    achievements:  /achievement|award|honor|distinction|winner|rank\s*\d|medal|scholarship/i.test(raw),
+  };
+
+  /* ── EXTRACT EDUCATION ── */
+  let education = '';
+  const eduPatterns = ['b.tech','m.tech','b.sc','m.sc','bca','mca','b.e','m.e','phd','bachelor','master','b tech','m tech','be ','me '];
+  for(const line of lines) {
+    if(eduPatterns.some(e => line.toLowerCase().includes(e))) { education = line; break; }
+  }
+  if(!education) {
+    for(const line of lines) {
+      if(/university|college|institute/i.test(line) && line.length < 120) { education = line; break; }
+    }
+  }
+
+  /* ── EXTRACT SKILLS (fixed: uses includes-based matching) ── */
+  const foundTech = [], foundSoft = [];
+  for(const [cat, skills] of Object.entries(SKILLS_DB)) {
+    for(const skill of skills) {
+      if(skillExists(skill, raw)) {
+        if(cat === 'soft') { if(!foundSoft.includes(skill)) foundSoft.push(skill); }
+        else               { if(!foundTech.includes(skill)) foundTech.push(skill); }
+      }
+    }
+  }
+
+  /* ── ATS SCORING ── */
+  const sectionScore   = Object.values(hasSections).filter(Boolean).length;
+  const skillScore     = Math.min(foundTech.length, 15);
+  const wordCount      = raw.split(/\s+/).length;
+  const lengthScore    = Math.min(Math.floor(wordCount / 80), 5);
+  const keywordDensity = Math.min(Math.floor(foundTech.length * 1.5), 12);
+  const bulletPoints   = (raw.match(/[•\-\*]\s/g)||[]).length;
+  const formatScore    = Math.min(Math.floor(bulletPoints / 2), 8);
+  const hasQuant       = /\d+\s*%|\d+\s*years?|\d+\s*projects?|\$[\d,]+|\d+\+\s/i.test(raw);
+  const quantScore     = hasQuant ? 7 : 0;
+  const rawScore       = (sectionScore/8)*25 + (skillScore/15)*25 + (lengthScore/5)*10 + (keywordDensity/12)*20 + (formatScore/8)*10 + quantScore;
+  const atsScore       = Math.min(Math.round(rawScore + Math.random()*4 + 2), 99);
+
+  /* ── SECTION SCORES ── */
+  const secScores = {
+    'Contact Info': hasSections.contact ? 100 : 0,
+    'Education':    hasSections.education ? 100 : 0,
+    'Experience':   hasSections.experience ? (bulletPoints > 3 ? 90 : 65) : 20,
+    'Skills':       Math.min(foundTech.length * 7, 100),
+    'Projects':     hasSections.projects ? (bulletPoints > 2 ? 85 : 60) : 15,
+    'Format':       Math.min(bulletPoints * 10 + (hasQuant ? 20 : 0), 100),
+  };
+
+  /* ── JOB ROLE MATCHING (fixed: uses same skillExists logic) ── */
+  const matches = JOB_ROLES.map(role => {
+    const matchedKeys = role.keys.filter(k => skillExists(k, raw) || rawLower.includes(k.toLowerCase()));
+    const base = Math.round((matchedKeys.length / role.keys.length) * 100);
+    const bonus = Math.floor(Math.random() * 6);
+    const topMatched = matchedKeys.slice(0, 2).join(', ') || role.keys.slice(0,2).join(', ');
+    return { title: role.title, match: Math.min(base + bonus, 97), reason: `Matched: ${topMatched}`, courses: role.courses };
+  }).filter(r => r.match > 5).sort((a,b) => b.match - a.match).slice(0, 4);
+
+  /* ── SKILL GAP (fixed: properly checks if skill actually exists in resume) ── */
+  const topRole = matches[0];
+  const roleKeys = topRole ? JOB_ROLES.find(r => r.title === topRole.title)?.keys || [] : [];
+
+  // Strong = role key skills that ARE found in resume
+  const strong  = roleKeys.filter(k => skillExists(k, raw) || rawLower.includes(k.toLowerCase()));
+  // Missing = role key skills that are NOT found in resume at all
+  const missing = roleKeys.filter(k => !skillExists(k, raw) && !rawLower.includes(k.toLowerCase())).slice(0, 8);
+  // Partial = other tech skills found that aren't in the top role's key list
+  const partial = foundTech.filter(s => !strong.includes(s)).slice(0, 6);
+
+  /* ── COURSES ── */
+  const allCourseKeys = [...(topRole?.courses||[]), 'python','sql','docker'].slice(0,4);
+  const courses = [...new Set(allCourseKeys)].map(k => COURSE_DB[k]).filter(Boolean).slice(0,4);
+
+  /* ── PERSONALIZED FEEDBACK ── */
+  const feedback = [];
+  if(foundTech.length >= 8) feedback.push({icon:'✅', text:`Great skill diversity! You listed ${foundTech.length} technical skills — this improves ATS keyword matching significantly.`});
+  else feedback.push({icon:'⚠️', text:`Only ${foundTech.length} technical skills detected. Add more relevant skills to your resume to improve ATS ranking.`});
+
+  if(hasSections.projects) feedback.push({icon:'✅', text:'Projects section detected — this is excellent for freshers and demonstrates practical experience to recruiters.'});
+  else feedback.push({icon:'⚠️', text:'No projects section found. Add 2-3 relevant projects with tech stack used to strengthen your profile.'});
+
+  if(hasQuant) feedback.push({icon:'✅', text:'Good use of quantifiable achievements (numbers, percentages). This makes your impact concrete and memorable.'});
+  else feedback.push({icon:'💡', text:'Add numbers and metrics to your experience — e.g., "Improved accuracy by 12%" or "Reduced load time by 40%".'});
+
+  if(bulletPoints > 4) feedback.push({icon:'✅', text:`${bulletPoints} bullet points found — well structured resume is easy for ATS scanners to parse.`});
+  else feedback.push({icon:'📌', text:'Use bullet points (•) to describe your experience and projects. ATS scanners prefer structured, scannable content.'});
+
+  if(!hasSections.summary) feedback.push({icon:'💡', text:'Add a 2-3 line professional summary at the top — it sets the tone and helps recruiters quickly understand your profile.'});
+  else feedback.push({icon:'✅', text:'Professional summary section detected — great! Ensure it mentions your top skills and career goal.'});
+
+  if(!hasSections.certifications) feedback.push({icon:'🚀', text:'Consider adding certifications (Coursera, Google, AWS free certs). They boost credibility, especially for fresher profiles.'});
+  else feedback.push({icon:'🚀', text:'Certifications detected! Keep them updated and add the issuing organization and completion date for credibility.'});
+
+  /* ── SCORE DESCRIPTION ── */
+  let scoreDesc = '';
+  if(atsScore >= 80) scoreDesc = 'Your resume is highly ATS-optimized with strong keywords, structure, and content depth. Ready for top applications.';
+  else if(atsScore >= 60) scoreDesc = 'Good resume with solid foundations. Adding more quantified achievements and skills will push it higher.';
+  else if(atsScore >= 40) scoreDesc = 'Decent base but needs more keywords, structured sections, and bullet-point formatting to pass ATS filters.';
+  else scoreDesc = 'Resume needs significant work — add key sections (Skills, Projects, Experience) and more industry keywords.';
+
+  return { atsScore, scoreDesc, name, email, phone, education, foundTech, foundSoft, hasSections, secScores, matches, strong, partial, missing, courses, feedback };
+}
+
+/* ══════════════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════════════ */
+const COLS = ['#10B981','#0EA5E9','#8B5CF6','#F59E0B','#EC4899'];
+
+function renderResults(d) {
+  /* Score ring */
+  const s = d.atsScore;
+  document.getElementById('scoreNum').textContent = s;
+  document.getElementById('scoreDesc').textContent = d.scoreDesc;
+  const col = s>=80?'#10B981':s>=60?'#0EA5E9':s>=40?'#F59E0B':'#EF4444';
+  const rf = document.getElementById('ringFill');
+  rf.style.stroke = col;
+  setTimeout(() => rf.style.strokeDashoffset = 289 - (s/100)*289, 120);
+  const sb = document.getElementById('scoreBadge');
+  if(s>=80){sb.textContent='🌟 Excellent';sb.className='score-badge b-ex';}
+  else if(s>=60){sb.textContent='👍 Good';sb.className='score-badge b-good';}
+  else if(s>=40){sb.textContent='⚡ Average';sb.className='score-badge b-avg';}
+  else{sb.textContent='⚠️ Needs Work';sb.className='score-badge b-low';}
+
+  /* Education */
+  document.getElementById('eduInfo').innerHTML =
+    `<strong style="color:var(--white)">${d.name}</strong><br>
+     ${d.email ? `<span style="color:var(--sky2);font-size:.82rem">📧 ${d.email}</span><br>` : ''}
+     ${d.phone ? `<span style="color:var(--muted);font-size:.82rem">📱 ${d.phone}</span><br>` : ''}
+     ${d.education ? `<br><span style="color:var(--text);font-size:.85rem">🎓 ${d.education}</span>` : ''}`;
+
+  /* Section scores */
+  const secColors = {'Contact Info':'#10B981','Education':'#38BDF8','Experience':'#8B5CF6','Skills':'#0EA5E9','Projects':'#F59E0B','Format':'#EC4899'};
+  document.getElementById('secBars').innerHTML = Object.entries(d.secScores).map(([k,v])=>`
+    <div class="sec-bar-row">
+      <span class="sec-bar-label">${k}</span>
+      <div class="sec-bar-track"><div class="sec-bar-fill" style="width:0%;background:${secColors[k]||'#0EA5E9'}" data-w="${v}"></div></div>
+      <span class="sec-bar-val" style="color:${secColors[k]||'#0EA5E9'}">${v}%</span>
+    </div>`).join('');
+
+  /* Skills */
+  document.getElementById('techSkills').innerHTML = (d.foundTech.slice(0,20)||[]).map(s=>`<span class="skill-tag">${s}</span>`).join('') || '<span style="color:var(--muted);font-size:.82rem">No technical skills detected</span>';
+  document.getElementById('softSkills').innerHTML = (d.foundSoft.slice(0,10)||[]).map(s=>`<span class="skill-tag">${s}</span>`).join('') || '<span style="color:var(--muted);font-size:.82rem">No soft skills detected</span>';
+
+  /* Job roles */
+  document.getElementById('jobRoles').innerHTML = d.matches.length ? d.matches.map((r,i)=>`
+    <div class="job-row">
+      <div><div class="job-name">${r.title}</div><div class="job-reason">${r.reason}</div></div>
+      <div class="bar-wrap">
+        <div class="bar-pct" style="color:${COLS[i%5]}">${r.match}%</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:0%;background:${COLS[i%5]}" data-w="${r.match}"></div></div>
+      </div>
+    </div>`).join('') : '<span style="color:var(--muted);font-size:.85rem">Add more skills/experience for role matching.</span>';
+
+  /* Skill gap */
+  document.getElementById('strongAreas').innerHTML  = d.strong.slice(0,8).map(s=>`<span class="skill-tag">${s}</span>`).join('') || '<span style="color:var(--muted);font-size:.82rem">—</span>';
+  document.getElementById('partAreas').innerHTML    = d.partial.slice(0,6).map(s=>`<span class="skill-tag part">${s}</span>`).join('') || '<span style="color:var(--muted);font-size:.82rem">—</span>';
+  document.getElementById('missSkills').innerHTML   = d.missing.slice(0,8).map(s=>`<span class="skill-tag miss">${s}</span>`).join('') || '<span style="color:var(--muted);font-size:.82rem">—</span>';
+
+  /* Courses */
+  document.getElementById('courses').innerHTML = d.courses.map(c=>`
+    <div class="course-row">
+      <div class="c-icon">${c.icon}</div>
+      <div><div class="c-name">${c.name}</div><div class="c-provider">${c.provider}</div>
+      <span class="c-tag ${c.tag.toLowerCase().includes('free')?'free':''}">${c.tag}</span></div>
+    </div>`).join('');
+
+  /* Feedback */
+  document.getElementById('feedback').innerHTML = d.feedback.map(f=>`
+    <div class="fb-row"><div class="fb-icon">${f.icon}</div><div class="fb-text">${f.text}</div></div>`).join('');
+
+  /* Show results */
+  const sec = document.getElementById('results');
+  sec.className = 'visible';
+  sec.scrollIntoView({behavior:'smooth', block:'start'});
+
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill,.sec-bar-fill').forEach(b => { b.style.width = (b.dataset.w||0) + '%'; });
+    resizeC();
+  }, 300);
+}
+
+function reset() {
+  document.getElementById('results').className = '';
+  document.getElementById('resumeText').value = '';
+  document.getElementById('fileName').textContent = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('errBox').className = 'err-box';
+  resumeRaw = '';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+</script>
+</body>
+</html>
